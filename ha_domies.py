@@ -6,6 +6,7 @@ for analysis, and visualization
 """
 
 import plotly.express as px
+import datetime
 import emoji
 import grapheme
 import re
@@ -138,11 +139,54 @@ def emoji_stats(df):
     fig.show()
 
 
+def get_day_of_the_week(df):
+    """
+    Gets day of the week from input of Date (xx/xx/xx)
+    :param  (dataframe): 
+    :return (dataframe): Includes day of the week
+    """
+    days = []
+    years = []
+    month_name = []
+    weekDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    months   = ['Jan', 'Feb', 'March', 'Apr', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
+    for day in df.Date:
+        dates = day.split('/')
+        year = "20" + dates[2]
+        day = dates[1]
+        month = dates[0]
+        day_of_the_week = datetime.date(int(year), int(month), int(day))
+        years.append(year)
+        month_name.append(months[int(month)-1])
+        days.append(weekDays[day_of_the_week.weekday()])
+    correct_time = []
+    for time in df.Time:
+        if len(time) == 11:
+            time = time[0:5] + time[8:]
+            correct_time.append(time)
+        else:
+            time = time[0:6] + time[9:]
+            correct_time.append(time)
+    df['Redacted Time'] = np.array(correct_time)
+    df['Year'] = np.array(years)
+    df['Month'] = np.array(month_name)
+    df['Day of the Week'] = np.array(days)
+    print(df.head(250))
+
+
+def get_month(df):
+    """
+    Gets month from input of Date (xx/xx/xx)
+    :param (dataframe):
+    :return (dataframe) Indluces month
+    """
 
 if __name__ == '__main__':  
     chat_history = get_chathistory()
     data = prepare_for_pandas(chat_history)
     df = clean_pandas_df(data)
+    print(get_day_of_the_week(df))
+    #print(df.Date)
     #basic_analysis(df)
-    emoji_stats(df)
+    #emoji_stats(df)
 
