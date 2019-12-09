@@ -181,7 +181,7 @@ def freq_msg_day(df_1):
     :param (dataframe)
     :return (plotly graph)
     """
-    days = df_1.Day.unique()
+    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     day_dict = {num : 0 for num in days}  # fills dictionary values with 0
     for day in days:
         if day in day_dict.keys():
@@ -190,14 +190,34 @@ def freq_msg_day(df_1):
     days = list(day_dict.keys())
     fig = go.Figure(go.Line(x=days, y=freq))
     fig.show()
-    
+
+
+def freq_msg_month(df_1):
+    """
+    Plots the graph of frequency of messages for every month of the year
+    :param (dataframe)
+    :return (plotly graph)
+    """   
+    months = df_1.Month.unique()
+    month_dict = {num: 0 for num in months}
+    for month in months:
+        if month in month_dict.keys():
+            month_dict[month] = df_1.Month.str.count(month).sum()
+    freq = list(month_dict.values())
+    months = list(month_dict.keys())
+    #fig = go.Figure(go.Line(x=months, y=freq))
+    #fig.show()
+
+
 
 if __name__ == '__main__':  
     chat_history = get_chathistory()
     data = prepare_for_pandas(chat_history)
     df = clean_pandas_df(data)
     df_1 = get_day_of_the_week(df)
-    print(freq_msg_day(df_1))
+    print(df_1)
+    #print(freq_msg_month(df_1))
+    #print(freq_msg_day(df_1))
     #print(df.Date)
     #basic_analysis(df)
     #emoji_stats(df)
