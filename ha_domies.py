@@ -6,6 +6,7 @@ for analysis, and visualization
 """
 
 import plotly.express as px
+import plotly.graph_objects as go
 import datetime
 import emoji
 import grapheme
@@ -170,22 +171,33 @@ def get_day_of_the_week(df):
     df['Redacted Time'] = np.array(correct_time)
     df['Year'] = np.array(years)
     df['Month'] = np.array(month_name)
-    df['Day of the Week'] = np.array(days)
-    print(df.head(250))
+    df['Day'] = np.array(days)
+    return df
 
 
-def get_month(df):
+def freq_msg_day(df_1):
     """
-    Gets month from input of Date (xx/xx/xx)
-    :param (dataframe):
-    :return (dataframe) Indluces month
+    Plots the graph of frequency of messages for every day of the week
+    :param (dataframe)
+    :return (plotly graph)
     """
+    days = df_1.Day.unique()
+    day_dict = {num : 0 for num in days}  # fills dictionary values with 0
+    for day in days:
+        if day in day_dict.keys():
+            day_dict[day] = df_1.Day.str.count(day).sum()  # counts the sum of each day occruence
+    freq = list(day_dict.values())
+    days = list(day_dict.keys())
+    fig = go.Figure(go.Line(x=days, y=freq))
+    fig.show()
+    
 
 if __name__ == '__main__':  
     chat_history = get_chathistory()
     data = prepare_for_pandas(chat_history)
     df = clean_pandas_df(data)
-    print(get_day_of_the_week(df))
+    df_1 = get_day_of_the_week(df)
+    print(freq_msg_day(df_1))
     #print(df.Date)
     #basic_analysis(df)
     #emoji_stats(df)
