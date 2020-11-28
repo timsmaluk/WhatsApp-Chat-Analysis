@@ -26,11 +26,12 @@ def get_chathistory():
     :param 
     :return: (list) of chat logs
     """
-    with open("_chat.txt", 'r', encoding='utf-8') as file:
+    with open("/Users/Tim_Smaluk/Desktop/shit/christmas_present/_chat.txt", 'r', encoding='utf-8') as file:
         return file.readlines()
 
 def extract_emojis(str):
-  return ''.join(c for c in str if c in emoji.UNICODE_EMOJI)
+  return ' '.join(c for c in str if c in emoji.UNICODE_EMOJI)
+
 
 def prepare_for_pandas(chat_history):
     """
@@ -40,13 +41,19 @@ def prepare_for_pandas(chat_history):
     """
     for line in chat_history:  
         if 'Tim Aka Professor Snowangel 🇷🇺🥦🥦 Smaluk' in line:
-            line = line.replace('Tim Aka Professor Snowangel 🇷🇺🥦🥦 Smaluk', 'Tim Smaluk')
+            line = line.replace('Tim Aka Professor Snowangel 🇷🇺🥦🥦 Smaluk', 'Tim Smaluk:')
         result = date_time_pattern.match(line)
         if 'Ethan  Lipsker' in line:
-            line = line.replace('Ethan  Lipsker', 'Ethan Lipsker')
+            line = line.replace('Ethan  Lipsker', 'Ethan Lipsker:')
+        if 'Mohit:' in line:
+            line = line.replace('Mohit:', 'Mohit Veligenti:')
+        if '\u202a+1\xa0(925)\xa0699‑5459\u202c:' in line:
+            line = line.replace('\u202a+1\xa0(925)\xa0699‑5459\u202c:', 'Zac Pinard:')
         if result is not None:
             dates.append(result.group())
-            messages.append(line.split(result.group())[1].rstrip('[').lstrip(']'))
+            # print(result.group())
+            # print(line.split(result.group()))
+            messages.append(line.split(result.group()))
     log_dictionary['Dates'] = dates
     log_dictionary['Messages'] = messages
     return log_dictionary
@@ -59,21 +66,24 @@ def clean_pandas_df(data):
     :return (DataFrame): orgonized chat log into 4 columns(Date, Time, Names, Messages)
     """
     ha_domies_df = pd.DataFrame(data)
-    ha_domies_df = ha_domies_df.drop([0, 1, 2], axis=0)
+    ha_domies_df = ha_domies_df.drop([0, 1, 2], axis=0) 
     
     ha_domies_df[['Date', 'Time']] = ha_domies_df.Dates.str.split(",", expand=True)
     ha_domies_df['Date'] = ha_domies_df.Date.str.lstrip('[')
     
     ha_domies_df['Time'] = ha_domies_df.Time.str.rstrip(']')
     
-    ha_domies_df['Names'] = ha_domies_df['Messages'].str.extract('([A-z][a-z]+\s[A-Z][a-z]+:)', expand=True)
-    ha_domies_df['Names'] = ha_domies_df.Names.str.rstrip(":")
-    
-    ha_domies_df['Messages'] = ha_domies_df.Messages.str.split('([A-z][a-z]+\s[A-Z][a-z]+:)', expand=True)[2]
-    ha_domies_df['Messages'] = ha_domies_df.Messages.str.replace("\n","").replace("\t","")
+    ha_domies_df['Names'] = ha_domies_df.Messages.str[1]
+    ha_domies_df['Names'] = ha_domies_df.Names.str.extract(('([A-Z][a-z]+\s[A-Z][a-z]+:)'))
+    ha_domies_df['Names'] = ha_domies_df.Names.str.replace(':', "")
+
+    ha_domies_df['Messages'] = ha_domies_df.Messages.str[1]
+    ha_domies_df['Messages'] = ha_domies_df.Messages.str.split(':', 1,  expand=True)[1]
+    ha_domies_df['Messages'] = ha_domies_df.Messages.astype(str).str.replace("\n","").replace("\t","")
 
     ha_domies_df.drop(columns='Dates')
     ha_domies_df = ha_domies_df.dropna()
+
     ha_domies_df = ha_domies_df.reset_index(drop=True)
     
     ha_domies_df.at[15316, 'Time'] = '2:08:09 PM'
@@ -104,11 +114,11 @@ def basic_analysis(df):
     
     msg_lengths = df.Messages.map(lambda x: len(x))
     msg_lengths_2 = df.Messages.map(lambda x: len(x.split(" ")))
-    #print(list(msg_lengths.nlargest(10).values))
-    #print(msg_lengths_2.nlargest())
-    #print(df.loc[[36815, 27129, 14993, 36816, 16172]])
+    # print(list(msg_lengths.nlargest(10).values))
+    # print(msg_lengths_2.nlargest())
+    # print(df.loc[[36815, 27129, 14993, 36816, 16172]])
 
-    # longest_message = df.Messages.map(lambda x: len(x.split(" "))).max()
+    longest_message = df.Messages.map(lambda x: len(x.split(" "))).max()
     # total_words = df.Messages.map(lambda x: len(x.split(" "))).sum()
     # longest_message_index = df.Messages.apply(lambda x: len(x) == 2090)
     # longest_message_holder = df.loc[27130, 'Names']
@@ -130,15 +140,19 @@ def emoji_stats(df):
             emojis.append(extract_emojis(msg))
             num_emojis.append(grapheme.length(extract_emojis(msg)))
         else:
-            emojis.append('None')
+            emojis.append('')
             num_emojis.append(int('0'))
     df['Emojis'] = np.array(emojis)
+    emoji_frq = df.loc[df['Emojis'] != '']
+    #print(emoji_frq)
+    #print(emoji_frq['Emojis'].value_counts())
+    emojis_by_name = emoji_frq.groupby(['Names', 'Emojis']).agg(lambda x: x.value_counts().index[0])
+    print(emojis_by_name)
     df['# of Emojis'] = np.array(num_emojis)
     emoji_df = df.groupby('Names').sum()[['# of Emojis']].sort_values(by=['# of Emojis'])
     emoji_df = emoji_df.reset_index()
     fig = px.bar(emoji_df, x='# of Emojis', y='Names', orientation='h')
-    fig.show()
-
+    #fig.show()
 
 def get_day_of_the_week(df):
     """
@@ -189,6 +203,7 @@ def freq_msg_day(df_1):
     freq = list(day_dict.values())
     days = list(day_dict.keys())
     fig = go.Figure(go.Line(x=days, y=freq))
+    #fig.update_layout(title='Frequency of Messages per Day', xaxis='Day of the Week', yaxis='# of Messages')
     fig.show()
 
 
@@ -205,20 +220,39 @@ def freq_msg_month(df_1):
             month_dict[month] = df_1.Month.str.count(month).sum()
     freq = list(month_dict.values())
     months = list(month_dict.keys())
-    #fig = go.Figure(go.Line(x=months, y=freq))
-    #fig.show()
+    fig = go.Figure(go.Line(x=months, y=freq))
+    fig.show()
 
+
+def freq_msg_year(df_1):
+    """
+    Plots the graph of frequency of messages for every month of the year
+    :param (dataframe)
+    :return (plotly graph)
+    """
+    years = df_1.Year.unique()
+    year_dict = {num: 0 for num in years}
+    for year in years:
+        if year in year_dict.keys():
+            year_dict[year] = df_1.Year.str.count(year).sum()
+    freq = list(year_dict.values())
+    years = list(year_dict.keys())
+    fig = go.Figure(go.Line(x=years, y=freq))
+    fig.show()
 
 
 if __name__ == '__main__':  
     chat_history = get_chathistory()
     data = prepare_for_pandas(chat_history)
     df = clean_pandas_df(data)
-    df_1 = get_day_of_the_week(df)
-    print(df_1)
-    #print(freq_msg_month(df_1))
+
+    #df_1 = get_day_of_the_week(df)
+    #print(df_1)
     #print(freq_msg_day(df_1))
+    #print(freq_msg_year(df_1))
+    #print(freq_msg_month(df_1))
+    
     #print(df.Date)
     #basic_analysis(df)
-    #emoji_stats(df)
+    emoji_stats(df)
 

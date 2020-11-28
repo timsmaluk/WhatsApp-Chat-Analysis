@@ -1,0 +1,27 @@
+
+Make a simulation of all of the text messages sent in the group chat	
+
+	Abstract the visualization as running watter (wow trippy bro /s)
+
+Catagorize our top 5/10 most topics talked about (politics, sports, music, etc)
+
+Link moments in history to text messages
+
+Be able to break images sent by color catagory
+
+Do an ML project by catagorizing images (worded vs non-worded)
+
+Count how many unique Pepes live among our chat
+
+Collage all the Pepes for fun
+
+Analyze how Fantasy Football Chat decreases Ha Domies chats on weekends
+
+Graph everyones most used emoji
+
+Breakdown each persons messages into catagories such as above^
+
+Calculate who has the hghest wildcard rating (highest percentage
+of saying something random.
+
+
