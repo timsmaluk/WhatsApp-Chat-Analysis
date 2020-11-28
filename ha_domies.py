@@ -62,8 +62,8 @@ def prepare_for_pandas(chat_history):
 def clean_pandas_df(data):
     """
     Creates a Pandas Dataframe to prepare data for analysis
-    :param  (dictionary): Dates(includes Time) and Messages(Includes Names)
-    :return (DataFrame): orgonized chat log into 4 columns(Date, Time, Names, Messages)
+    :param  (dictionary): Dates(includes Time) and Messages(Includes Alias)
+    :return (DataFrame): orgonized chat log into 4 columns(Date, Time, Alias, Messages)
     """
     ha_domies_df = pd.DataFrame(data)
     ha_domies_df = ha_domies_df.drop([0, 1, 2], axis=0) 
@@ -98,7 +98,8 @@ def clean_pandas_df(data):
     ha_domies_df.at[19915 ,'Names'] = 'Mohit Veligenti'
     ha_domies_df.at[19915 ,'Messages'] = '[Developing Story] XXXTentacion might be dead? https://www.reddit.com/r/hiphopheads/comments/8s2mxk/' 
 
-    ha_domies_df = ha_domies_df[['Date', 'Time', 'Names', 'Messages']]
+    ha_domies_df['Alias'] = ha_domies_df.Names.apply(lambda x: x.split()[0])
+    ha_domies_df = ha_domies_df[['Date', 'Time', 'Alias', 'Messages']]
     return ha_domies_df
 
 
@@ -109,7 +110,7 @@ def basic_analysis(df):
     :param  (Dataframe): Takes in dataframe from clean_pandas_df
     :return (): stats from above
     """
-    number_members = len(df['Names'].unique())
+    number_members = len(df['Alias'].unique())
     number_messages = len(df['Messages'])
     
     msg_lengths = df.Messages.map(lambda x: len(x))
@@ -119,9 +120,10 @@ def basic_analysis(df):
     # print(df.loc[[36815, 27129, 14993, 36816, 16172]])
 
     longest_message = df.Messages.map(lambda x: len(x.split(" "))).max()
+    
     # total_words = df.Messages.map(lambda x: len(x.split(" "))).sum()
     # longest_message_index = df.Messages.apply(lambda x: len(x) == 2090)
-    # longest_message_holder = df.loc[27130, 'Names']
+    # longest_message_holder = df.loc[27130, 'Alias']
     # longest_message_length = 2090
     #print(total_words)
     #print(number_messages, number_members, total_words, longest_message_holder, longest_message_length)
@@ -133,26 +135,30 @@ def emoji_stats(df):
     :df     (dataframe)
     :return (none)
     """
-    emojis = []
-    num_emojis = []
-    for msg in df.Messages:
-        if len(extract_emojis(msg)) != 0:
-            emojis.append(extract_emojis(msg))
-            num_emojis.append(grapheme.length(extract_emojis(msg)))
-        else:
-            emojis.append('')
-            num_emojis.append(int('0'))
-    df['Emojis'] = np.array(emojis)
-    emoji_frq = df.loc[df['Emojis'] != '']
+    for row in df['Messages']:
+        for x in row:
+            if x in emoji.UNICODE_EMOJI:
+                print(x)
+    df['Emojis'] = df['Messages'].apply(lambda x: [c for c in x if x in emoji.UNICODE_EMOJI])
+    print(df['Emojis'])
+    emoji_df = df[df['Emojis'].apply(lambda x: True if x else False)]
+    #print(emoji_df)
+    emoji_dict = {alias: {emoji: 0 for emoji in emoji.UNICODE_EMOJI.keys()} for alias in emoji_df.Alias}
+    #print(emoji_dict)
+    # for name, emotes in zip(df['Alias'], df['Emojis']):
+    #     for emote in emotes:
+    #         if emote is not '':
+                
+
     #print(emoji_frq)
     #print(emoji_frq['Emojis'].value_counts())
-    emojis_by_name = emoji_frq.groupby(['Names', 'Emojis']).agg(lambda x: x.value_counts().index[0])
-    print(emojis_by_name)
-    df['# of Emojis'] = np.array(num_emojis)
-    emoji_df = df.groupby('Names').sum()[['# of Emojis']].sort_values(by=['# of Emojis'])
-    emoji_df = emoji_df.reset_index()
-    fig = px.bar(emoji_df, x='# of Emojis', y='Names', orientation='h')
-    #fig.show()
+    # emojis_by_name = emoji_frq.groupby(['Alias', 'Emojis']).agg(lambda x: x.value_counts().index[0])
+    # #print(emojis_by_name)
+    # df['# of Emojis'] = np.array(num_emojis)
+    # emoji_df = df.groupby('Alias').sum()[['# of Emojis']].sort_values(by=['# of Emojis'])
+    # emoji_df = emoji_df.reset_index()
+    # fig = px.bar(emoji_df, x='# of Emojis', y='Alias', orientation='h')
+    # #fig.show()
 
 def get_day_of_the_week(df):
     """
@@ -240,6 +246,28 @@ def freq_msg_year(df_1):
     fig = go.Figure(go.Line(x=years, y=freq))
     fig.show()
 
+def msg_over_all_time(df):
+    df['Count'] = 1
+    date_count = df.groupby(['Date'])['Count'].sum()
+    date_sum = date_count.to_frame()
+    date_sum = date_sum.reset_index()
+    date_sum['Date'] = pd.to_datetime(date_sum.Date)
+    date_sum.sort_values(by='Date', inplace=True)
+    #print(date_sum)
+    d = date_sum['Date'].tolist()
+    c = date_sum['Count'].tolist()
+    fig = go.Figure(go.Line(x=d, y=c))
+    fig.show()
+
+def avg_msg_length(df):
+    df['Msg Length'] = df.Messages.apply(lambda x: len(x))
+    avg_msg_length = df.groupby('Alias').mean().reset_index().sort_values(by='Msg Length', ascending=False)
+    #print(avg_msg_length)
+    name = avg_msg_length['Alias'].tolist()
+    avg = avg_msg_length['Msg Length'].tolist()
+    fig = px.bar(avg_msg_length, x="Alias", y="Msg Length", title="Average Message Length by Person", color="Msg Length")
+    fig.show()
+
 
 if __name__ == '__main__':  
     chat_history = get_chathistory()
@@ -248,11 +276,13 @@ if __name__ == '__main__':
 
     #df_1 = get_day_of_the_week(df)
     #print(df_1)
-    #print(freq_msg_day(df_1))
+    #print(freq_msg_day(df))
     #print(freq_msg_year(df_1))
     #print(freq_msg_month(df_1))
     
     #print(df.Date)
     #basic_analysis(df)
     emoji_stats(df)
+    #msg_over_all_time(df)
+    #avg_msg_length(df)
 
